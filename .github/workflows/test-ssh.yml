@@ -1,0 +1,93 @@
+name: Test SSH Connection
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-ssh:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Debug Secrets (Sans afficher les valeurs sensibles)
+        run: |
+          echo "🔍 Diagnostic des secrets GitHub Actions"
+          echo "======================================"
+          echo ""
+          echo "Host configuré: ${{ secrets.DEPLOY_HOST != '' && '✅' || '❌' }}"
+          echo "User configuré: ${{ secrets.DEPLOY_USER != '' && '✅' || '❌' }}"
+          echo "SSH Key configurée: ${{ secrets.DEPLOY_SSH_KEY != '' && '✅' || '❌' }}"
+          echo "GHCR PAT configuré: ${{ secrets.GHCR_PAT != '' && '✅' || '❌' }}"
+          echo "GHCR Username configuré: ${{ secrets.GHCR_USERNAME != '' && '✅' || '❌' }}"
+          echo ""
+          
+          # Vérifications détaillées
+          if [ -z "${{ secrets.DEPLOY_HOST }}" ]; then
+            echo "❌ DEPLOY_HOST manquant"
+            echo "   Ajoutez l'IP du serveur dans GitHub Secrets"
+            exit 1
+          fi
+          
+          if [ -z "${{ secrets.DEPLOY_USER }}" ]; then
+            echo "❌ DEPLOY_USER manquant"
+            echo "   Ajoutez l'utilisateur SSH dans GitHub Secrets"
+            exit 1
+          fi
+          
+          if [ -z "${{ secrets.DEPLOY_SSH_KEY }}" ]; then
+            echo "❌ DEPLOY_SSH_KEY manquant"
+            echo "   Ajoutez la clé privée SSH dans GitHub Secrets"
+            exit 1
+          fi
+          
+          echo "✅ Tous les secrets requis sont configurés"
+          echo ""
+
+      - name: Test SSH Connection (Verbose)
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            echo "✅ Connexion SSH réussie !"
+            echo ""
+            echo "📋 Informations du serveur:"
+            echo "  OS: $(cat /etc/os-release | grep PRETTY_NAME | cut -d'"' -f2)"
+            echo "  Hostname: $(hostname)"
+            echo "  User: $(whoami)"
+            echo "  Uptime: $(uptime -p)"
+            echo "  Memory: $(free -h | grep Mem | awk '{print $2}')"
+            echo "  Disk: $(df -h / | tail -1 | awk '{print $4}') libre"
+            echo ""
+            echo "🔧 Test des commandes de base:"
+            echo "  pwd: $(pwd)"
+            echo "  whoami: $(whoami)"
+            echo "  id: $(id)"
+            echo ""
+            echo "🎉 Serveur prêt pour le déploiement !"
+
+      - name: Success Message
+        if: success()
+        run: |
+          echo "🎉 Test SSH réussi !"
+          echo "Le serveur est accessible et configuré correctement."
+          echo ""
+          echo "📝 Prochaines étapes:"
+          echo "1. Le workflow de déploiement principal devrait maintenant fonctionner"
+          echo "2. Vous pouvez lancer le déploiement via Actions → Deploy"
+          echo "3. Vérifiez que Docker est installé sur le serveur"
+
+      - name: Failure Message
+        if: failure()
+        run: |
+          echo "❌ Test SSH échoué !"
+          echo ""
+          echo "🔧 Actions à effectuer:"
+          echo "1. Vérifiez que la clé publique est dans ~/.ssh/authorized_keys sur le serveur"
+          echo "2. Vérifiez les permissions: chmod 700 ~/.ssh && chmod 600 ~/.ssh/authorized_keys"
+          echo "3. Vérifiez que l'utilisateur '${{ secrets.DEPLOY_USER }}' existe sur le serveur"
+          echo "4. Testez manuellement: ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}"
+          echo ""
+          echo "📖 Consultez TROUBLESHOOTING.md pour plus de détails"
