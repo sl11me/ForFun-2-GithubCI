@@ -110,7 +110,8 @@ ForFun-2-GithubCI/
 ├── .github/
 │   └── workflows/
 │       ├── ci.yml          # Pipeline CI (build, test, push)
-│       └── deploy.yml      # Pipeline de déploiement
+│       ├── deploy.yml      # Pipeline de déploiement
+│       └── test-ssh.yml    # Test de connexion SSH
 ├── app/
 │   ├── __init__.py
 │   ├── main.py            # Application FastAPI
@@ -118,10 +119,12 @@ ForFun-2-GithubCI/
 │   └── tests/
 │       └── test_health.py # Tests unitaires
 ├── scripts/
-│   └── generate-deploy-key.sh  # Script de génération SSH
+│   ├── generate-deploy-key.sh  # Script de génération SSH
+│   └── test-ssh-connection.sh  # Script de test SSH
 ├── Dockerfile             # Configuration Docker
 ├── Makefile              # Commandes de développement
 ├── SSH_SETUP.md          # Guide de configuration SSH
+├── TROUBLESHOOTING.md    # Guide de dépannage
 ├── GHCR_FIX.md           # Documentation des corrections
 └── README.md             # Ce fichier
 ```
@@ -159,6 +162,19 @@ on:
 4. Login GHCR
 5. Pull de l'image
 6. Déploiement du container
+```
+
+### **Test SSH Workflow (`test-ssh.yml`)**
+
+```yaml
+# Déclencheurs
+on:
+  workflow_dispatch:  # Manuel
+
+# Étapes
+1. Diagnostic des secrets
+2. Test de connexion SSH détaillé
+3. Informations du serveur
 ```
 
 ## 🐳 Docker
@@ -294,7 +310,10 @@ export PORT=8000
 ```
 ssh: handshake failed: ssh: unable to authenticate
 ```
-**Solution** : Vérifiez la configuration SSH dans `SSH_SETUP.md`
+**Solution** : 
+- Utilisez le script de test : `./scripts/test-ssh-connection.sh VOTRE_IP ubuntu`
+- Consultez `TROUBLESHOOTING.md` pour le diagnostic complet
+- Lancez le workflow **Test SSH Connection** dans GitHub Actions
 
 #### **2. Erreur Docker Build**
 ```
@@ -311,6 +330,26 @@ ModuleNotFoundError: No module named 'app'
 pip install -e .
 ```
 
+### **Scripts de Diagnostic**
+
+#### **Test SSH Local**
+```bash
+# Test complet de la connexion SSH
+./scripts/test-ssh-connection.sh VOTRE_IP ubuntu ~/.ssh/deploy_key
+```
+
+#### **Génération de Clé SSH**
+```bash
+# Générer une nouvelle clé SSH
+./scripts/generate-deploy-key.sh mon-serveur
+```
+
+### **Workflows de Test**
+
+1. **Test SSH** : Actions → **Test SSH Connection** → Run workflow
+2. **Diagnostic** : Le workflow affiche les secrets manquants
+3. **Connexion** : Test de connexion SSH avec informations du serveur
+
 ### **Logs de Débogage**
 
 ```bash
@@ -325,6 +364,7 @@ docker logs ci-cd-demo --tail 100
 ## 📚 Documentation Supplémentaire
 
 - 📖 **[SSH_SETUP.md](SSH_SETUP.md)** : Configuration SSH complète
+- 🔧 **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)** : Guide de dépannage détaillé
 - 🔧 **[GHCR_FIX.md](GHCR_FIX.md)** : Corrections des problèmes GHCR
 - 🐳 **[Dockerfile](Dockerfile)** : Configuration Docker
 - ⚙️ **[Makefile](Makefile)** : Commandes de développement
@@ -345,8 +385,9 @@ Ce projet est sous licence MIT. Voir le fichier `LICENSE` pour plus de détails.
 
 - ✅ **CI/CD Pipeline** : Fonctionnel
 - ✅ **Tests Automatisés** : Implémentés
-- ✅ **Déploiement SSH** : Configuré
-- ✅ **Documentation** : Complète
+- ✅ **Déploiement SSH** : Configuré avec diagnostic
+- ✅ **Documentation** : Complète avec guides de dépannage
 - ✅ **Monitoring** : En place
+- ✅ **Scripts de Diagnostic** : Disponibles
 
 **Le projet est prêt pour la production ! 🚀**
