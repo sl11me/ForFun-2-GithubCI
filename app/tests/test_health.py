@@ -1,10 +1,3 @@
-import sys
-import os
-from pathlib import Path
-
-# Ajouter le répertoire parent au path Python
-sys.path.insert(0, str(Path(__file__).parent.parent))
-
 from app.main import health, version
 
 def test_health():

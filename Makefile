@@ -1,6 +1,6 @@
 IMAGE=ghcr.io/$(sl11me)/ci-cd-demo:latest
 
-.PHONY: help install test run build clean
+.PHONY: help install install-dev test run build clean
 
 help: ## Afficher l'aide
 	@echo "Commandes disponibles:"
@@ -9,6 +9,11 @@ help: ## Afficher l'aide
 install: ## Installer les dépendances
 	python -m venv .venv
 	.venv/bin/pip install -r app/requirements.txt
+
+install-dev: ## Installer en mode développement (recommandé)
+	python -m venv .venv
+	.venv/bin/pip install -r app/requirements.txt
+	.venv/bin/pip install -e .
 
 test: ## Exécuter les tests
 	python -m pytest app/tests/ -v
