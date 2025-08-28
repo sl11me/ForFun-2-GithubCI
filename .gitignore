@@ -5,3 +5,10 @@ dist/
 .build/
 .env
 .scripts/
+
+# Scripts de développement (générés automatiquement)
+scripts/
+
+# Fichiers Python package info (générés automatiquement)
+*.egg-info/
+forfun_githubci.egg-info/
