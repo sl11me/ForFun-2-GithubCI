@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+pytest
+
+[dev]
+pytest
+pytest-cov
+black
+flake8
