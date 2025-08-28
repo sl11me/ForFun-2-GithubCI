@@ -21,15 +21,33 @@ Le repository `ForFun-2-GithubCI` contient des majuscules, ce qui n'est pas auto
 ```yaml
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository | lower }} # Conversion en minuscules
   TAG: latest
+
+jobs:
+  build-test-push:
+    runs-on: ubuntu-latest
+    steps:
+      # ... autres étapes ...
+      
+      - name: Set image name
+        run: echo "IMAGE_NAME=$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+      
+      # ... suite du workflow ...
 ```
 
 #### **2. Workflow Deploy (`deploy.yml`)**
 ```yaml
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository | lower }} # Conversion en minuscules
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set image name
+        run: echo "IMAGE_NAME=$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+      
+      # ... suite du workflow ...
 ```
 
 ### **Résultat**
@@ -38,10 +56,22 @@ env:
 
 ## 🔍 Détails Techniques
 
-### **Filtre `| lower`**
-Le filtre `| lower` dans GitHub Actions convertit automatiquement le nom du repository en minuscules :
+### **Commande de Conversion**
+```bash
+echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]'
+```
 
-```yaml
+Cette commande utilise `tr` (translate) pour convertir tous les caractères majuscules en minuscules.
+
+### **Variable d'Environnement**
+```bash
+echo "IMAGE_NAME=converted-name" >> $GITHUB_ENV
+```
+
+La variable `IMAGE_NAME` est définie dans l'environnement GitHub Actions et peut être utilisée dans les étapes suivantes.
+
+### **Exemples de Conversion**
+```bash
 # Exemples de conversion
 ForFun-2-GithubCI → forfun-2-github-ci
 My-Project → my-project
