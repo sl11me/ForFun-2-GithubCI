@@ -7,6 +7,11 @@ on:
         description: "Tag de l'image à déployer (ex: latest ou un SHA)"
         required: true
         default: "latest"
+      stop_nginx:
+        description: "Arrêter nginx pour libérer le port 80 ?"
+        required: false
+        default: true
+        type: boolean
 
 permissions:
   contents: read
@@ -24,26 +29,36 @@ jobs:
       - name: Debug Secrets (Sans afficher les valeurs sensibles)
         run: |
           echo "🔍 Diagnostic des secrets GitHub Actions"
+          echo "======================================"
+          echo ""
           echo "Host configuré: ${{ secrets.DEPLOY_HOST != '' && '✅' || '❌' }}"
           echo "User configuré: ${{ secrets.DEPLOY_USER != '' && '✅' || '❌' }}"
           echo "SSH Key configurée: ${{ secrets.DEPLOY_SSH_KEY != '' && '✅' || '❌' }}"
           echo "GHCR PAT configuré: ${{ secrets.GHCR_PAT != '' && '✅' || '❌' }}"
           echo "GHCR Username configuré: ${{ secrets.GHCR_USERNAME != '' && '✅' || '❌' }}"
+          echo ""
           
+          # Vérifications détaillées
           if [ -z "${{ secrets.DEPLOY_HOST }}" ]; then
             echo "❌ DEPLOY_HOST manquant"
+            echo "   Ajoutez l'IP du serveur dans GitHub Secrets"
             exit 1
           fi
           
           if [ -z "${{ secrets.DEPLOY_USER }}" ]; then
             echo "❌ DEPLOY_USER manquant"
+            echo "   Ajoutez l'utilisateur SSH dans GitHub Secrets"
             exit 1
           fi
           
           if [ -z "${{ secrets.DEPLOY_SSH_KEY }}" ]; then
             echo "❌ DEPLOY_SSH_KEY manquant"
+            echo "   Ajoutez la clé privée SSH dans GitHub Secrets"
             exit 1
           fi
+          
+          echo "✅ Tous les secrets requis sont configurés"
+          echo ""
 
       - name: Test SSH Connection
         uses: appleboy/ssh-action@v1.2.0
@@ -53,12 +68,21 @@ jobs:
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           script: |
             echo "✅ Connexion SSH réussie !"
-            echo "👤 Utilisateur: $(whoami)"
-            echo "📁 Répertoire: $(pwd)"
-            echo "🖥️  Serveur: $(hostname)"
-            echo "🐧 OS: $(cat /etc/os-release | grep PRETTY_NAME | cut -d'"' -f2)"
-            echo "💾 Mémoire: $(free -h | grep Mem | awk '{print $2}')"
-            echo "💿 Espace disque: $(df -h / | tail -1 | awk '{print $4}') libre"
+            echo ""
+            echo "📋 Informations du serveur:"
+            echo "  OS: $(cat /etc/os-release | grep PRETTY_NAME | cut -d'"' -f2)"
+            echo "  Hostname: $(hostname)"
+            echo "  User: $(whoami)"
+            echo "  Uptime: $(uptime -p)"
+            echo "  Memory: $(free -h | grep Mem | awk '{print $2}')"
+            echo "  Disk: $(df -h / | tail -1 | awk '{print $4}') libre"
+            echo ""
+            echo "🔧 Test des commandes de base:"
+            echo "  pwd: $(pwd)"
+            echo "  whoami: $(whoami)"
+            echo "  id: $(id)"
+            echo ""
+            echo "🎉 Serveur prêt pour le déploiement !"
 
       - name: Afficher cible
         run: echo "🎯 Déploiement sur ${{ secrets.DEPLOY_HOST }}"
@@ -103,8 +127,33 @@ jobs:
             echo "[+] Stop/Remove container if exists"
             docker rm -f "$APP_NAME" 2>/dev/null || true
 
-            echo "[+] Run container (expose 80 -> 8000)"
-            docker run -d --name "$APP_NAME" --restart=always -p 80:8000 "$IMAGE"
+            # Gestion du conflit de port
+            echo "[+] Vérification du port 80..."
+            if sudo ss -tlnp | grep -q ":80 "; then
+              echo "[!] Port 80 occupé détecté"
+              if [ "${{ github.event.inputs.stop_nginx }}" = "true" ]; then
+                echo "[+] Arrêt de nginx pour libérer le port 80"
+                sudo systemctl stop nginx
+                sudo systemctl disable nginx
+                echo "[+] Nginx arrêté"
+              else
+                echo "[+] Utilisation du port 8080 au lieu de 80"
+                PORT_MAPPING="-p 8080:8000"
+              fi
+            else
+              echo "[+] Port 80 libre"
+              PORT_MAPPING="-p 80:8000"
+            fi
+
+            echo "[+] Run container (expose $PORT_MAPPING)"
+            docker run -d --name "$APP_NAME" --restart=always $PORT_MAPPING "$IMAGE"
 
             echo "[+] ps:"
             docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Ports}}\t{{.Status}}"
+
+            # Afficher l'URL d'accès
+            if [ "$PORT_MAPPING" = "-p 80:8000" ]; then
+              echo "[+] Application accessible sur: http://${{ secrets.DEPLOY_HOST }}/"
+            else
+              echo "[+] Application accessible sur: http://${{ secrets.DEPLOY_HOST }}:8080/"
+            fi
