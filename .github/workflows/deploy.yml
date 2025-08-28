@@ -21,8 +21,47 @@ jobs:
       - name: Set image name
         run: echo "IMAGE_NAME=$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
 
+      - name: Debug Secrets (Sans afficher les valeurs sensibles)
+        run: |
+          echo "🔍 Diagnostic des secrets GitHub Actions"
+          echo "Host configuré: ${{ secrets.DEPLOY_HOST != '' && '✅' || '❌' }}"
+          echo "User configuré: ${{ secrets.DEPLOY_USER != '' && '✅' || '❌' }}"
+          echo "SSH Key configurée: ${{ secrets.DEPLOY_SSH_KEY != '' && '✅' || '❌' }}"
+          echo "GHCR PAT configuré: ${{ secrets.GHCR_PAT != '' && '✅' || '❌' }}"
+          echo "GHCR Username configuré: ${{ secrets.GHCR_USERNAME != '' && '✅' || '❌' }}"
+          
+          if [ -z "${{ secrets.DEPLOY_HOST }}" ]; then
+            echo "❌ DEPLOY_HOST manquant"
+            exit 1
+          fi
+          
+          if [ -z "${{ secrets.DEPLOY_USER }}" ]; then
+            echo "❌ DEPLOY_USER manquant"
+            exit 1
+          fi
+          
+          if [ -z "${{ secrets.DEPLOY_SSH_KEY }}" ]; then
+            echo "❌ DEPLOY_SSH_KEY manquant"
+            exit 1
+          fi
+
+      - name: Test SSH Connection
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            echo "✅ Connexion SSH réussie !"
+            echo "👤 Utilisateur: $(whoami)"
+            echo "📁 Répertoire: $(pwd)"
+            echo "🖥️  Serveur: $(hostname)"
+            echo "🐧 OS: $(cat /etc/os-release | grep PRETTY_NAME | cut -d'"' -f2)"
+            echo "💾 Mémoire: $(free -h | grep Mem | awk '{print $2}')"
+            echo "💿 Espace disque: $(df -h / | tail -1 | awk '{print $4}') libre"
+
       - name: Afficher cible
-        run: echo "Déploiement sur ${{ secrets.DEPLOY_HOST }}"
+        run: echo "🎯 Déploiement sur ${{ secrets.DEPLOY_HOST }}"
 
       - name: Déployer via SSH
         uses: appleboy/ssh-action@v1.2.0
