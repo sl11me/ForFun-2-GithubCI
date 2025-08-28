@@ -1,6 +1,6 @@
-# CI/CD Docker + GitHub Actions (FastAPI demo)
+# CI/CD Docker + GitHub Actions = Suite de l'integration continue ForFun
 
-Objectif : builder/tester/pousser une image Docker sur GHCR, et déployer sur une VM Linux via SSH.
+Objectif : builder/ &pousser une image Docker sur Github, et déployer sur une VM
 
 ## Démarrage local
 ```bash

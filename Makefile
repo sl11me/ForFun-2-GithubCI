@@ -1,4 +1,4 @@
-IMAGE=ghcr.io/sl11me/ci-cd-demo:latest
+IMAGE=ghcr.io/$(sl11me)/ci-cd-demo:latest
 
 .PHONY: test build run push
 test:
